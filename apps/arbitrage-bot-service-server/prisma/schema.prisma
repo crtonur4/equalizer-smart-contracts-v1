@@ -1,0 +1,55 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DB_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model Token {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Exchange {
+  id           String              @id @default(cuid())
+  createdAt    DateTime            @default(now())
+  updatedAt    DateTime            @updatedAt
+  name         String?
+  apiUrl       String?
+  isIntegrated Boolean?
+  status       EnumExchangeStatus?
+  fees         Float?
+}
+
+model Trade {
+  id            String           @id @default(cuid())
+  createdAt     DateTime         @default(now())
+  updatedAt     DateTime         @updatedAt
+  tokenPair     String?
+  profit        Float?
+  status        EnumTradeStatus?
+  executionTime DateTime?
+  tradeDetails  Json?
+}
+
+model FlashLoanProvider {
+  id                String   @id @default(cuid())
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  isActive          Boolean?
+  providerName      String?
+  apiUrl            String?
+  maximumLoanAmount Float?
+  fees              Float?
+}
+
+enum EnumExchangeStatus {
+  Option1
+}
+
+enum EnumTradeStatus {
+  Option1
+}
