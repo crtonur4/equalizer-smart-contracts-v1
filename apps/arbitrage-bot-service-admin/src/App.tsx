@@ -21,6 +21,10 @@ import { FlashLoanProviderList } from "./flashLoanProvider/FlashLoanProviderList
 import { FlashLoanProviderCreate } from "./flashLoanProvider/FlashLoanProviderCreate";
 import { FlashLoanProviderEdit } from "./flashLoanProvider/FlashLoanProviderEdit";
 import { FlashLoanProviderShow } from "./flashLoanProvider/FlashLoanProviderShow";
+import { UserList } from "./user/UserList";
+import { UserCreate } from "./user/UserCreate";
+import { UserEdit } from "./user/UserEdit";
+import { UserShow } from "./user/UserShow";
 import { jwtAuthProvider } from "./auth-provider/ra-auth-jwt";
 
 const App = (): React.ReactElement => {
@@ -74,6 +78,13 @@ const App = (): React.ReactElement => {
           edit={FlashLoanProviderEdit}
           create={FlashLoanProviderCreate}
           show={FlashLoanProviderShow}
+        />
+        <Resource
+          name="User"
+          list={UserList}
+          edit={UserEdit}
+          create={UserCreate}
+          show={UserShow}
         />
       </Admin>
     </div>

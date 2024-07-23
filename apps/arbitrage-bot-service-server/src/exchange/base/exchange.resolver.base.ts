@@ -13,6 +13,12 @@ import * as graphql from "@nestjs/graphql";
 import { GraphQLError } from "graphql";
 import { isRecordNotFoundError } from "../../prisma.util";
 import { MetaQueryPayload } from "../../util/MetaQueryPayload";
+import * as nestAccessControl from "nest-access-control";
+import * as gqlACGuard from "../../auth/gqlAC.guard";
+import { GqlDefaultAuthGuard } from "../../auth/gqlDefaultAuth.guard";
+import * as common from "@nestjs/common";
+import { AclFilterResponseInterceptor } from "../../interceptors/aclFilterResponse.interceptor";
+import { AclValidateRequestInterceptor } from "../../interceptors/aclValidateRequest.interceptor";
 import { Exchange } from "./Exchange";
 import { ExchangeCountArgs } from "./ExchangeCountArgs";
 import { ExchangeFindManyArgs } from "./ExchangeFindManyArgs";
@@ -21,10 +27,20 @@ import { CreateExchangeArgs } from "./CreateExchangeArgs";
 import { UpdateExchangeArgs } from "./UpdateExchangeArgs";
 import { DeleteExchangeArgs } from "./DeleteExchangeArgs";
 import { ExchangeService } from "../exchange.service";
+@common.UseGuards(GqlDefaultAuthGuard, gqlACGuard.GqlACGuard)
 @graphql.Resolver(() => Exchange)
 export class ExchangeResolverBase {
-  constructor(protected readonly service: ExchangeService) {}
+  constructor(
+    protected readonly service: ExchangeService,
+    protected readonly rolesBuilder: nestAccessControl.RolesBuilder
+  ) {}
 
+  @graphql.Query(() => MetaQueryPayload)
+  @nestAccessControl.UseRoles({
+    resource: "Exchange",
+    action: "read",
+    possession: "any",
+  })
   async _exchangesMeta(
     @graphql.Args() args: ExchangeCountArgs
   ): Promise<MetaQueryPayload> {
@@ -34,14 +50,26 @@ export class ExchangeResolverBase {
     };
   }
 
+  @common.UseInterceptors(AclFilterResponseInterceptor)
   @graphql.Query(() => [Exchange])
+  @nestAccessControl.UseRoles({
+    resource: "Exchange",
+    action: "read",
+    possession: "any",
+  })
   async exchanges(
     @graphql.Args() args: ExchangeFindManyArgs
   ): Promise<Exchange[]> {
     return this.service.exchanges(args);
   }
 
+  @common.UseInterceptors(AclFilterResponseInterceptor)
   @graphql.Query(() => Exchange, { nullable: true })
+  @nestAccessControl.UseRoles({
+    resource: "Exchange",
+    action: "read",
+    possession: "own",
+  })
   async exchange(
     @graphql.Args() args: ExchangeFindUniqueArgs
   ): Promise<Exchange | null> {
@@ -52,7 +80,13 @@ export class ExchangeResolverBase {
     return result;
   }
 
+  @common.UseInterceptors(AclValidateRequestInterceptor)
   @graphql.Mutation(() => Exchange)
+  @nestAccessControl.UseRoles({
+    resource: "Exchange",
+    action: "create",
+    possession: "any",
+  })
   async createExchange(
     @graphql.Args() args: CreateExchangeArgs
   ): Promise<Exchange> {
@@ -62,7 +96,13 @@ export class ExchangeResolverBase {
     });
   }
 
+  @common.UseInterceptors(AclValidateRequestInterceptor)
   @graphql.Mutation(() => Exchange)
+  @nestAccessControl.UseRoles({
+    resource: "Exchange",
+    action: "update",
+    possession: "any",
+  })
   async updateExchange(
     @graphql.Args() args: UpdateExchangeArgs
   ): Promise<Exchange | null> {
@@ -82,6 +122,11 @@ export class ExchangeResolverBase {
   }
 
   @graphql.Mutation(() => Exchange)
+  @nestAccessControl.UseRoles({
+    resource: "Exchange",
+    action: "delete",
+    possession: "any",
+  })
   async deleteExchange(
     @graphql.Args() args: DeleteExchangeArgs
   ): Promise<Exchange | null> {

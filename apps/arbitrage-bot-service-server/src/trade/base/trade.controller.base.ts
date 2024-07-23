@@ -16,17 +16,35 @@ import * as errors from "../../errors";
 import { Request } from "express";
 import { plainToClass } from "class-transformer";
 import { ApiNestedQuery } from "../../decorators/api-nested-query.decorator";
+import * as nestAccessControl from "nest-access-control";
+import * as defaultAuthGuard from "../../auth/defaultAuth.guard";
 import { TradeService } from "../trade.service";
+import { AclValidateRequestInterceptor } from "../../interceptors/aclValidateRequest.interceptor";
+import { AclFilterResponseInterceptor } from "../../interceptors/aclFilterResponse.interceptor";
 import { TradeCreateInput } from "./TradeCreateInput";
 import { Trade } from "./Trade";
 import { TradeFindManyArgs } from "./TradeFindManyArgs";
 import { TradeWhereUniqueInput } from "./TradeWhereUniqueInput";
 import { TradeUpdateInput } from "./TradeUpdateInput";
 
+@swagger.ApiBearerAuth()
+@common.UseGuards(defaultAuthGuard.DefaultAuthGuard, nestAccessControl.ACGuard)
 export class TradeControllerBase {
-  constructor(protected readonly service: TradeService) {}
+  constructor(
+    protected readonly service: TradeService,
+    protected readonly rolesBuilder: nestAccessControl.RolesBuilder
+  ) {}
+  @common.UseInterceptors(AclValidateRequestInterceptor)
   @common.Post()
   @swagger.ApiCreatedResponse({ type: Trade })
+  @nestAccessControl.UseRoles({
+    resource: "Trade",
+    action: "create",
+    possession: "any",
+  })
+  @swagger.ApiForbiddenResponse({
+    type: errors.ForbiddenException,
+  })
   async createTrade(@common.Body() data: TradeCreateInput): Promise<Trade> {
     return await this.service.createTrade({
       data: data,
@@ -43,9 +61,18 @@ export class TradeControllerBase {
     });
   }
 
+  @common.UseInterceptors(AclFilterResponseInterceptor)
   @common.Get()
   @swagger.ApiOkResponse({ type: [Trade] })
   @ApiNestedQuery(TradeFindManyArgs)
+  @nestAccessControl.UseRoles({
+    resource: "Trade",
+    action: "read",
+    possession: "any",
+  })
+  @swagger.ApiForbiddenResponse({
+    type: errors.ForbiddenException,
+  })
   async trades(@common.Req() request: Request): Promise<Trade[]> {
     const args = plainToClass(TradeFindManyArgs, request.query);
     return this.service.trades({
@@ -63,9 +90,18 @@ export class TradeControllerBase {
     });
   }
 
+  @common.UseInterceptors(AclFilterResponseInterceptor)
   @common.Get("/:id")
   @swagger.ApiOkResponse({ type: Trade })
   @swagger.ApiNotFoundResponse({ type: errors.NotFoundException })
+  @nestAccessControl.UseRoles({
+    resource: "Trade",
+    action: "read",
+    possession: "own",
+  })
+  @swagger.ApiForbiddenResponse({
+    type: errors.ForbiddenException,
+  })
   async trade(
     @common.Param() params: TradeWhereUniqueInput
   ): Promise<Trade | null> {
@@ -90,9 +126,18 @@ export class TradeControllerBase {
     return result;
   }
 
+  @common.UseInterceptors(AclValidateRequestInterceptor)
   @common.Patch("/:id")
   @swagger.ApiOkResponse({ type: Trade })
   @swagger.ApiNotFoundResponse({ type: errors.NotFoundException })
+  @nestAccessControl.UseRoles({
+    resource: "Trade",
+    action: "update",
+    possession: "any",
+  })
+  @swagger.ApiForbiddenResponse({
+    type: errors.ForbiddenException,
+  })
   async updateTrade(
     @common.Param() params: TradeWhereUniqueInput,
     @common.Body() data: TradeUpdateInput
@@ -125,6 +170,14 @@ export class TradeControllerBase {
   @common.Delete("/:id")
   @swagger.ApiOkResponse({ type: Trade })
   @swagger.ApiNotFoundResponse({ type: errors.NotFoundException })
+  @nestAccessControl.UseRoles({
+    resource: "Trade",
+    action: "delete",
+    possession: "any",
+  })
+  @swagger.ApiForbiddenResponse({
+    type: errors.ForbiddenException,
+  })
   async deleteTrade(
     @common.Param() params: TradeWhereUniqueInput
   ): Promise<Trade | null> {

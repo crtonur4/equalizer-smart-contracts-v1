@@ -13,6 +13,12 @@ import * as graphql from "@nestjs/graphql";
 import { GraphQLError } from "graphql";
 import { isRecordNotFoundError } from "../../prisma.util";
 import { MetaQueryPayload } from "../../util/MetaQueryPayload";
+import * as nestAccessControl from "nest-access-control";
+import * as gqlACGuard from "../../auth/gqlAC.guard";
+import { GqlDefaultAuthGuard } from "../../auth/gqlDefaultAuth.guard";
+import * as common from "@nestjs/common";
+import { AclFilterResponseInterceptor } from "../../interceptors/aclFilterResponse.interceptor";
+import { AclValidateRequestInterceptor } from "../../interceptors/aclValidateRequest.interceptor";
 import { Trade } from "./Trade";
 import { TradeCountArgs } from "./TradeCountArgs";
 import { TradeFindManyArgs } from "./TradeFindManyArgs";
@@ -21,10 +27,20 @@ import { CreateTradeArgs } from "./CreateTradeArgs";
 import { UpdateTradeArgs } from "./UpdateTradeArgs";
 import { DeleteTradeArgs } from "./DeleteTradeArgs";
 import { TradeService } from "../trade.service";
+@common.UseGuards(GqlDefaultAuthGuard, gqlACGuard.GqlACGuard)
 @graphql.Resolver(() => Trade)
 export class TradeResolverBase {
-  constructor(protected readonly service: TradeService) {}
+  constructor(
+    protected readonly service: TradeService,
+    protected readonly rolesBuilder: nestAccessControl.RolesBuilder
+  ) {}
 
+  @graphql.Query(() => MetaQueryPayload)
+  @nestAccessControl.UseRoles({
+    resource: "Trade",
+    action: "read",
+    possession: "any",
+  })
   async _tradesMeta(
     @graphql.Args() args: TradeCountArgs
   ): Promise<MetaQueryPayload> {
@@ -34,12 +50,24 @@ export class TradeResolverBase {
     };
   }
 
+  @common.UseInterceptors(AclFilterResponseInterceptor)
   @graphql.Query(() => [Trade])
+  @nestAccessControl.UseRoles({
+    resource: "Trade",
+    action: "read",
+    possession: "any",
+  })
   async trades(@graphql.Args() args: TradeFindManyArgs): Promise<Trade[]> {
     return this.service.trades(args);
   }
 
+  @common.UseInterceptors(AclFilterResponseInterceptor)
   @graphql.Query(() => Trade, { nullable: true })
+  @nestAccessControl.UseRoles({
+    resource: "Trade",
+    action: "read",
+    possession: "own",
+  })
   async trade(
     @graphql.Args() args: TradeFindUniqueArgs
   ): Promise<Trade | null> {
@@ -50,7 +78,13 @@ export class TradeResolverBase {
     return result;
   }
 
+  @common.UseInterceptors(AclValidateRequestInterceptor)
   @graphql.Mutation(() => Trade)
+  @nestAccessControl.UseRoles({
+    resource: "Trade",
+    action: "create",
+    possession: "any",
+  })
   async createTrade(@graphql.Args() args: CreateTradeArgs): Promise<Trade> {
     return await this.service.createTrade({
       ...args,
@@ -58,7 +92,13 @@ export class TradeResolverBase {
     });
   }
 
+  @common.UseInterceptors(AclValidateRequestInterceptor)
   @graphql.Mutation(() => Trade)
+  @nestAccessControl.UseRoles({
+    resource: "Trade",
+    action: "update",
+    possession: "any",
+  })
   async updateTrade(
     @graphql.Args() args: UpdateTradeArgs
   ): Promise<Trade | null> {
@@ -78,6 +118,11 @@ export class TradeResolverBase {
   }
 
   @graphql.Mutation(() => Trade)
+  @nestAccessControl.UseRoles({
+    resource: "Trade",
+    action: "delete",
+    possession: "any",
+  })
   async deleteTrade(
     @graphql.Args() args: DeleteTradeArgs
   ): Promise<Trade | null> {

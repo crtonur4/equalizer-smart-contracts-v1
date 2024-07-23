@@ -16,17 +16,35 @@ import * as errors from "../../errors";
 import { Request } from "express";
 import { plainToClass } from "class-transformer";
 import { ApiNestedQuery } from "../../decorators/api-nested-query.decorator";
+import * as nestAccessControl from "nest-access-control";
+import * as defaultAuthGuard from "../../auth/defaultAuth.guard";
 import { FlashLoanProviderService } from "../flashLoanProvider.service";
+import { AclValidateRequestInterceptor } from "../../interceptors/aclValidateRequest.interceptor";
+import { AclFilterResponseInterceptor } from "../../interceptors/aclFilterResponse.interceptor";
 import { FlashLoanProviderCreateInput } from "./FlashLoanProviderCreateInput";
 import { FlashLoanProvider } from "./FlashLoanProvider";
 import { FlashLoanProviderFindManyArgs } from "./FlashLoanProviderFindManyArgs";
 import { FlashLoanProviderWhereUniqueInput } from "./FlashLoanProviderWhereUniqueInput";
 import { FlashLoanProviderUpdateInput } from "./FlashLoanProviderUpdateInput";
 
+@swagger.ApiBearerAuth()
+@common.UseGuards(defaultAuthGuard.DefaultAuthGuard, nestAccessControl.ACGuard)
 export class FlashLoanProviderControllerBase {
-  constructor(protected readonly service: FlashLoanProviderService) {}
+  constructor(
+    protected readonly service: FlashLoanProviderService,
+    protected readonly rolesBuilder: nestAccessControl.RolesBuilder
+  ) {}
+  @common.UseInterceptors(AclValidateRequestInterceptor)
   @common.Post()
   @swagger.ApiCreatedResponse({ type: FlashLoanProvider })
+  @nestAccessControl.UseRoles({
+    resource: "FlashLoanProvider",
+    action: "create",
+    possession: "any",
+  })
+  @swagger.ApiForbiddenResponse({
+    type: errors.ForbiddenException,
+  })
   async createFlashLoanProvider(
     @common.Body() data: FlashLoanProviderCreateInput
   ): Promise<FlashLoanProvider> {
@@ -45,9 +63,18 @@ export class FlashLoanProviderControllerBase {
     });
   }
 
+  @common.UseInterceptors(AclFilterResponseInterceptor)
   @common.Get()
   @swagger.ApiOkResponse({ type: [FlashLoanProvider] })
   @ApiNestedQuery(FlashLoanProviderFindManyArgs)
+  @nestAccessControl.UseRoles({
+    resource: "FlashLoanProvider",
+    action: "read",
+    possession: "any",
+  })
+  @swagger.ApiForbiddenResponse({
+    type: errors.ForbiddenException,
+  })
   async flashLoanProviders(
     @common.Req() request: Request
   ): Promise<FlashLoanProvider[]> {
@@ -67,9 +94,18 @@ export class FlashLoanProviderControllerBase {
     });
   }
 
+  @common.UseInterceptors(AclFilterResponseInterceptor)
   @common.Get("/:id")
   @swagger.ApiOkResponse({ type: FlashLoanProvider })
   @swagger.ApiNotFoundResponse({ type: errors.NotFoundException })
+  @nestAccessControl.UseRoles({
+    resource: "FlashLoanProvider",
+    action: "read",
+    possession: "own",
+  })
+  @swagger.ApiForbiddenResponse({
+    type: errors.ForbiddenException,
+  })
   async flashLoanProvider(
     @common.Param() params: FlashLoanProviderWhereUniqueInput
   ): Promise<FlashLoanProvider | null> {
@@ -94,9 +130,18 @@ export class FlashLoanProviderControllerBase {
     return result;
   }
 
+  @common.UseInterceptors(AclValidateRequestInterceptor)
   @common.Patch("/:id")
   @swagger.ApiOkResponse({ type: FlashLoanProvider })
   @swagger.ApiNotFoundResponse({ type: errors.NotFoundException })
+  @nestAccessControl.UseRoles({
+    resource: "FlashLoanProvider",
+    action: "update",
+    possession: "any",
+  })
+  @swagger.ApiForbiddenResponse({
+    type: errors.ForbiddenException,
+  })
   async updateFlashLoanProvider(
     @common.Param() params: FlashLoanProviderWhereUniqueInput,
     @common.Body() data: FlashLoanProviderUpdateInput
@@ -129,6 +174,14 @@ export class FlashLoanProviderControllerBase {
   @common.Delete("/:id")
   @swagger.ApiOkResponse({ type: FlashLoanProvider })
   @swagger.ApiNotFoundResponse({ type: errors.NotFoundException })
+  @nestAccessControl.UseRoles({
+    resource: "FlashLoanProvider",
+    action: "delete",
+    possession: "any",
+  })
+  @swagger.ApiForbiddenResponse({
+    type: errors.ForbiddenException,
+  })
   async deleteFlashLoanProvider(
     @common.Param() params: FlashLoanProviderWhereUniqueInput
   ): Promise<FlashLoanProvider | null> {

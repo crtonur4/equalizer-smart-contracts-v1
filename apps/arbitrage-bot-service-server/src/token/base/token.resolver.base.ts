@@ -13,16 +13,31 @@ import * as graphql from "@nestjs/graphql";
 import { GraphQLError } from "graphql";
 import { isRecordNotFoundError } from "../../prisma.util";
 import { MetaQueryPayload } from "../../util/MetaQueryPayload";
+import * as nestAccessControl from "nest-access-control";
+import * as gqlACGuard from "../../auth/gqlAC.guard";
+import { GqlDefaultAuthGuard } from "../../auth/gqlDefaultAuth.guard";
+import * as common from "@nestjs/common";
+import { AclFilterResponseInterceptor } from "../../interceptors/aclFilterResponse.interceptor";
 import { Token } from "./Token";
 import { TokenCountArgs } from "./TokenCountArgs";
 import { TokenFindManyArgs } from "./TokenFindManyArgs";
 import { TokenFindUniqueArgs } from "./TokenFindUniqueArgs";
 import { DeleteTokenArgs } from "./DeleteTokenArgs";
 import { TokenService } from "../token.service";
+@common.UseGuards(GqlDefaultAuthGuard, gqlACGuard.GqlACGuard)
 @graphql.Resolver(() => Token)
 export class TokenResolverBase {
-  constructor(protected readonly service: TokenService) {}
+  constructor(
+    protected readonly service: TokenService,
+    protected readonly rolesBuilder: nestAccessControl.RolesBuilder
+  ) {}
 
+  @graphql.Query(() => MetaQueryPayload)
+  @nestAccessControl.UseRoles({
+    resource: "Token",
+    action: "read",
+    possession: "any",
+  })
   async _tokensMeta(
     @graphql.Args() args: TokenCountArgs
   ): Promise<MetaQueryPayload> {
@@ -32,12 +47,24 @@ export class TokenResolverBase {
     };
   }
 
+  @common.UseInterceptors(AclFilterResponseInterceptor)
   @graphql.Query(() => [Token])
+  @nestAccessControl.UseRoles({
+    resource: "Token",
+    action: "read",
+    possession: "any",
+  })
   async tokens(@graphql.Args() args: TokenFindManyArgs): Promise<Token[]> {
     return this.service.tokens(args);
   }
 
+  @common.UseInterceptors(AclFilterResponseInterceptor)
   @graphql.Query(() => Token, { nullable: true })
+  @nestAccessControl.UseRoles({
+    resource: "Token",
+    action: "read",
+    possession: "own",
+  })
   async token(
     @graphql.Args() args: TokenFindUniqueArgs
   ): Promise<Token | null> {
@@ -49,6 +76,11 @@ export class TokenResolverBase {
   }
 
   @graphql.Mutation(() => Token)
+  @nestAccessControl.UseRoles({
+    resource: "Token",
+    action: "delete",
+    possession: "any",
+  })
   async deleteToken(
     @graphql.Args() args: DeleteTokenArgs
   ): Promise<Token | null> {

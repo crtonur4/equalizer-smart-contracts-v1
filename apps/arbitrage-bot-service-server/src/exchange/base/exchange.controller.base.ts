@@ -16,17 +16,35 @@ import * as errors from "../../errors";
 import { Request } from "express";
 import { plainToClass } from "class-transformer";
 import { ApiNestedQuery } from "../../decorators/api-nested-query.decorator";
+import * as nestAccessControl from "nest-access-control";
+import * as defaultAuthGuard from "../../auth/defaultAuth.guard";
 import { ExchangeService } from "../exchange.service";
+import { AclValidateRequestInterceptor } from "../../interceptors/aclValidateRequest.interceptor";
+import { AclFilterResponseInterceptor } from "../../interceptors/aclFilterResponse.interceptor";
 import { ExchangeCreateInput } from "./ExchangeCreateInput";
 import { Exchange } from "./Exchange";
 import { ExchangeFindManyArgs } from "./ExchangeFindManyArgs";
 import { ExchangeWhereUniqueInput } from "./ExchangeWhereUniqueInput";
 import { ExchangeUpdateInput } from "./ExchangeUpdateInput";
 
+@swagger.ApiBearerAuth()
+@common.UseGuards(defaultAuthGuard.DefaultAuthGuard, nestAccessControl.ACGuard)
 export class ExchangeControllerBase {
-  constructor(protected readonly service: ExchangeService) {}
+  constructor(
+    protected readonly service: ExchangeService,
+    protected readonly rolesBuilder: nestAccessControl.RolesBuilder
+  ) {}
+  @common.UseInterceptors(AclValidateRequestInterceptor)
   @common.Post()
   @swagger.ApiCreatedResponse({ type: Exchange })
+  @nestAccessControl.UseRoles({
+    resource: "Exchange",
+    action: "create",
+    possession: "any",
+  })
+  @swagger.ApiForbiddenResponse({
+    type: errors.ForbiddenException,
+  })
   async createExchange(
     @common.Body() data: ExchangeCreateInput
   ): Promise<Exchange> {
@@ -45,9 +63,18 @@ export class ExchangeControllerBase {
     });
   }
 
+  @common.UseInterceptors(AclFilterResponseInterceptor)
   @common.Get()
   @swagger.ApiOkResponse({ type: [Exchange] })
   @ApiNestedQuery(ExchangeFindManyArgs)
+  @nestAccessControl.UseRoles({
+    resource: "Exchange",
+    action: "read",
+    possession: "any",
+  })
+  @swagger.ApiForbiddenResponse({
+    type: errors.ForbiddenException,
+  })
   async exchanges(@common.Req() request: Request): Promise<Exchange[]> {
     const args = plainToClass(ExchangeFindManyArgs, request.query);
     return this.service.exchanges({
@@ -65,9 +92,18 @@ export class ExchangeControllerBase {
     });
   }
 
+  @common.UseInterceptors(AclFilterResponseInterceptor)
   @common.Get("/:id")
   @swagger.ApiOkResponse({ type: Exchange })
   @swagger.ApiNotFoundResponse({ type: errors.NotFoundException })
+  @nestAccessControl.UseRoles({
+    resource: "Exchange",
+    action: "read",
+    possession: "own",
+  })
+  @swagger.ApiForbiddenResponse({
+    type: errors.ForbiddenException,
+  })
   async exchange(
     @common.Param() params: ExchangeWhereUniqueInput
   ): Promise<Exchange | null> {
@@ -92,9 +128,18 @@ export class ExchangeControllerBase {
     return result;
   }
 
+  @common.UseInterceptors(AclValidateRequestInterceptor)
   @common.Patch("/:id")
   @swagger.ApiOkResponse({ type: Exchange })
   @swagger.ApiNotFoundResponse({ type: errors.NotFoundException })
+  @nestAccessControl.UseRoles({
+    resource: "Exchange",
+    action: "update",
+    possession: "any",
+  })
+  @swagger.ApiForbiddenResponse({
+    type: errors.ForbiddenException,
+  })
   async updateExchange(
     @common.Param() params: ExchangeWhereUniqueInput,
     @common.Body() data: ExchangeUpdateInput
@@ -127,6 +172,14 @@ export class ExchangeControllerBase {
   @common.Delete("/:id")
   @swagger.ApiOkResponse({ type: Exchange })
   @swagger.ApiNotFoundResponse({ type: errors.NotFoundException })
+  @nestAccessControl.UseRoles({
+    resource: "Exchange",
+    action: "delete",
+    possession: "any",
+  })
+  @swagger.ApiForbiddenResponse({
+    type: errors.ForbiddenException,
+  })
   async deleteExchange(
     @common.Param() params: ExchangeWhereUniqueInput
   ): Promise<Exchange | null> {

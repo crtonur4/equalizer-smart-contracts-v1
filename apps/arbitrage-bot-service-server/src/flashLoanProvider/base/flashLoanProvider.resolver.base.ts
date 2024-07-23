@@ -13,6 +13,12 @@ import * as graphql from "@nestjs/graphql";
 import { GraphQLError } from "graphql";
 import { isRecordNotFoundError } from "../../prisma.util";
 import { MetaQueryPayload } from "../../util/MetaQueryPayload";
+import * as nestAccessControl from "nest-access-control";
+import * as gqlACGuard from "../../auth/gqlAC.guard";
+import { GqlDefaultAuthGuard } from "../../auth/gqlDefaultAuth.guard";
+import * as common from "@nestjs/common";
+import { AclFilterResponseInterceptor } from "../../interceptors/aclFilterResponse.interceptor";
+import { AclValidateRequestInterceptor } from "../../interceptors/aclValidateRequest.interceptor";
 import { FlashLoanProvider } from "./FlashLoanProvider";
 import { FlashLoanProviderCountArgs } from "./FlashLoanProviderCountArgs";
 import { FlashLoanProviderFindManyArgs } from "./FlashLoanProviderFindManyArgs";
@@ -21,10 +27,20 @@ import { CreateFlashLoanProviderArgs } from "./CreateFlashLoanProviderArgs";
 import { UpdateFlashLoanProviderArgs } from "./UpdateFlashLoanProviderArgs";
 import { DeleteFlashLoanProviderArgs } from "./DeleteFlashLoanProviderArgs";
 import { FlashLoanProviderService } from "../flashLoanProvider.service";
+@common.UseGuards(GqlDefaultAuthGuard, gqlACGuard.GqlACGuard)
 @graphql.Resolver(() => FlashLoanProvider)
 export class FlashLoanProviderResolverBase {
-  constructor(protected readonly service: FlashLoanProviderService) {}
+  constructor(
+    protected readonly service: FlashLoanProviderService,
+    protected readonly rolesBuilder: nestAccessControl.RolesBuilder
+  ) {}
 
+  @graphql.Query(() => MetaQueryPayload)
+  @nestAccessControl.UseRoles({
+    resource: "FlashLoanProvider",
+    action: "read",
+    possession: "any",
+  })
   async _flashLoanProvidersMeta(
     @graphql.Args() args: FlashLoanProviderCountArgs
   ): Promise<MetaQueryPayload> {
@@ -34,14 +50,26 @@ export class FlashLoanProviderResolverBase {
     };
   }
 
+  @common.UseInterceptors(AclFilterResponseInterceptor)
   @graphql.Query(() => [FlashLoanProvider])
+  @nestAccessControl.UseRoles({
+    resource: "FlashLoanProvider",
+    action: "read",
+    possession: "any",
+  })
   async flashLoanProviders(
     @graphql.Args() args: FlashLoanProviderFindManyArgs
   ): Promise<FlashLoanProvider[]> {
     return this.service.flashLoanProviders(args);
   }
 
+  @common.UseInterceptors(AclFilterResponseInterceptor)
   @graphql.Query(() => FlashLoanProvider, { nullable: true })
+  @nestAccessControl.UseRoles({
+    resource: "FlashLoanProvider",
+    action: "read",
+    possession: "own",
+  })
   async flashLoanProvider(
     @graphql.Args() args: FlashLoanProviderFindUniqueArgs
   ): Promise<FlashLoanProvider | null> {
@@ -52,7 +80,13 @@ export class FlashLoanProviderResolverBase {
     return result;
   }
 
+  @common.UseInterceptors(AclValidateRequestInterceptor)
   @graphql.Mutation(() => FlashLoanProvider)
+  @nestAccessControl.UseRoles({
+    resource: "FlashLoanProvider",
+    action: "create",
+    possession: "any",
+  })
   async createFlashLoanProvider(
     @graphql.Args() args: CreateFlashLoanProviderArgs
   ): Promise<FlashLoanProvider> {
@@ -62,7 +96,13 @@ export class FlashLoanProviderResolverBase {
     });
   }
 
+  @common.UseInterceptors(AclValidateRequestInterceptor)
   @graphql.Mutation(() => FlashLoanProvider)
+  @nestAccessControl.UseRoles({
+    resource: "FlashLoanProvider",
+    action: "update",
+    possession: "any",
+  })
   async updateFlashLoanProvider(
     @graphql.Args() args: UpdateFlashLoanProviderArgs
   ): Promise<FlashLoanProvider | null> {
@@ -82,6 +122,11 @@ export class FlashLoanProviderResolverBase {
   }
 
   @graphql.Mutation(() => FlashLoanProvider)
+  @nestAccessControl.UseRoles({
+    resource: "FlashLoanProvider",
+    action: "delete",
+    possession: "any",
+  })
   async deleteFlashLoanProvider(
     @graphql.Args() args: DeleteFlashLoanProviderArgs
   ): Promise<FlashLoanProvider | null> {
